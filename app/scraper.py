@@ -10,7 +10,10 @@ PASSWORD = os.getenv("TANKARTA_PASSWORD", "dummy_pass")
 
 
 def get_prices() -> str:
-    driver = webdriver.Firefox()
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+
+    driver = webdriver.Firefox(options=options)
 
     driver.get("https://business.tankarta.cz")
 
