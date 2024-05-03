@@ -1,12 +1,11 @@
 import logging
-from pathlib import Path
 
+from config import RECIPIENTS, PRICES_FILE_PATH
 from send_mail import send_mail
 from scraper import get_prices
 
 log = logging.getLogger(__name__)
 
-PRICES_FILE_PATH = Path("prices.txt")
 
 old_prices = ""
 new_prices = get_prices()
@@ -20,7 +19,7 @@ if new_prices != old_prices:
         f.write(new_prices)
 
     send_mail(
-        recipients=["mi.sta160@gmail.com"],
+        recipients=RECIPIENTS,
         subject="Pozor pozor, vyhlašuji nové ceny!",
         body=new_prices
     )

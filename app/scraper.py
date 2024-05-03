@@ -1,6 +1,7 @@
-import os
 import logging
 import time
+
+from config import LOAD_TIMEOUT, LOAD_POLL_FREQUENCY, TANKARTA_USERNAME, TANKARTA_PASSWORD, TANKARTA_LOGIN_PAGE
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -10,12 +11,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
 log = logging.getLogger(__name__)
-
-USERNAME = os.getenv("TANKARTA_USERNAME", "dummy_user")
-PASSWORD = os.getenv("TANKARTA_PASSWORD", "dummy_pass")
-
-LOAD_TIMEOUT = 10  # s
-LOAD_POLL_FREQUENCY = 1  # s
 
 
 def wait_for_load(driver: webdriver.Firefox, element: str, locator: str = By.ID) -> None:
@@ -34,17 +29,17 @@ def get_prices() -> str:
 
     driver = webdriver.Firefox(options=options)
 
-    driver.get("https://business.tankarta.cz")
+    driver.get(TANKARTA_LOGIN_PAGE)
 
     wait_for_load(driver, "login")
 
     log.info("Filling in username")
     username_area = driver.find_element(By.ID, "login")
-    username_area.send_keys(USERNAME)
+    username_area.send_keys(TANKARTA_USERNAME)
 
     log.info("Filling in password")
     password_area = driver.find_element(By.ID, "pwd")
-    password_area.send_keys(PASSWORD)
+    password_area.send_keys(TANKARTA_PASSWORD)
 
     log.info("Pressing submit button")
     action = ActionChains(driver)

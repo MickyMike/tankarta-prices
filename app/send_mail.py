@@ -1,12 +1,10 @@
 import logging
-import os
 import smtplib
 from email.mime.text import MIMEText
 
-log = logging.getLogger(__name__)
+from config import GMAIL_USERNAME, GMAIL_PASSWORD
 
-GMAIL_USERNAME = os.getenv("GMAIL_USERNAME", "dummy_user")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "dummy_password")
+log = logging.getLogger(__name__)
 
 
 def send_mail(recipients: list[str], subject: str, body: str) -> None:
