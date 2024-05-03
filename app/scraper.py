@@ -13,17 +13,21 @@ from selenium.webdriver.support import expected_conditions as ec
 log = logging.getLogger(__name__)
 
 
+class NotLoaded(Exception):
+    pass
+
+
 def wait_for_load(driver: webdriver.Firefox, element: str, locator: str = By.ID) -> None:
     try:
         log.info("Waiting to load %s", element)
-        login_present = ec.presence_of_element_located((locator, element))
-        WebDriverWait(driver, timeout=LOAD_TIMEOUT, poll_frequency=LOAD_POLL_FREQUENCY).until(login_present)
+        element_present = ec.presence_of_element_located((locator, element))
+        WebDriverWait(driver, timeout=LOAD_TIMEOUT, poll_frequency=LOAD_POLL_FREQUENCY).until(element_present)
     except TimeoutException:
-        log.exception("Finding element %s timeouted after %d seconds: ", element, LOAD_TIMEOUT)
-        driver.quit()
+        log.error("Finding element %s timeouted after %d seconds", element, LOAD_TIMEOUT)
+        raise NotLoaded
 
 
-def get_prices() -> str:
+def get_new_prices() -> str:
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless")
 
@@ -31,7 +35,11 @@ def get_prices() -> str:
 
     driver.get(TANKARTA_LOGIN_PAGE)
 
-    wait_for_load(driver, "login")
+    try:
+        wait_for_load(driver, "login")
+    except NotLoaded:
+        log.warning("Login page not loaded, retrying")
+        driver.get(TANKARTA_LOGIN_PAGE)
 
     log.info("Filling in username")
     username_area = driver.find_element(By.ID, "login")
@@ -42,17 +50,28 @@ def get_prices() -> str:
     password_area.send_keys(TANKARTA_PASSWORD)
 
     log.info("Pressing submit button")
-    action = ActionChains(driver)
     login_button = driver.find_element(By.ID, "submit")
-    action.click(on_element=login_button)
-    action.perform()
+    ActionChains(driver).click(on_element=login_button).perform()
 
-    time.sleep(0.2)  # give selenium time to click the button before waiting for price element
-    wait_for_load(driver, element="//div[@data-widget='Price']", locator=By.XPATH)
+    try:
+        wait_for_load(driver, element="//div[@data-widget='Price']", locator=By.XPATH)
+    except NotLoaded:
+        log.warning("Prices page not loaded, retrying to click the login button")
+        login_button = driver.find_element(By.ID, "submit")
+        ActionChains(driver).click(on_element=login_button).perform()
+        wait_for_load(driver, element="//div[@data-widget='Price']", locator=By.XPATH)
 
     price_box = driver.find_element(By.XPATH, "//div[@data-widget='Price']")
-
     prices = price_box.text
+
+    retry_counter = 1
+    while not prices and retry_counter <= 10:
+        log.info("Prices not loaded, retrying (%d/10)", retry_counter)
+        time.sleep(1)
+        price_box = driver.find_element(By.XPATH, "//div[@data-widget='Price']")
+        prices = price_box.text
+        retry_counter += 1
+
     driver.quit()
 
     return prices
