@@ -1,12 +1,31 @@
 import os
+import logging
 import time
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as ec
+
+log = logging.getLogger(__name__)
 
 USERNAME = os.getenv("TANKARTA_USERNAME", "dummy_user")
 PASSWORD = os.getenv("TANKARTA_PASSWORD", "dummy_pass")
+
+LOAD_TIMEOUT = 10  # s
+LOAD_POLL_FREQUENCY = 1  # s
+
+
+def wait_for_load(driver: webdriver.Firefox, element: str, locator: str = By.ID) -> None:
+    try:
+        log.info("Waiting to load %s", element)
+        login_present = ec.presence_of_element_located((locator, element))
+        WebDriverWait(driver, timeout=LOAD_TIMEOUT, poll_frequency=LOAD_POLL_FREQUENCY).until(login_present)
+    except TimeoutException:
+        log.exception("Finding element %s timeouted after %d seconds: ", element, LOAD_TIMEOUT)
+        driver.quit()
 
 
 def get_prices() -> str:
@@ -17,23 +36,24 @@ def get_prices() -> str:
 
     driver.get("https://business.tankarta.cz")
 
-    time.sleep(2)
+    wait_for_load(driver, "login")
 
-    # fill in username
+    log.info("Filling in username")
     username_area = driver.find_element(By.ID, "login")
     username_area.send_keys(USERNAME)
 
-    # fill in password
+    log.info("Filling in password")
     password_area = driver.find_element(By.ID, "pwd")
     password_area.send_keys(PASSWORD)
 
-    # press login
+    log.info("Pressing submit button")
     action = ActionChains(driver)
     login_button = driver.find_element(By.ID, "submit")
     action.click(on_element=login_button)
     action.perform()
 
-    time.sleep(2)
+    time.sleep(0.2)  # give selenium time to click the button before waiting for price element
+    wait_for_load(driver, element="//div[@data-widget='Price']", locator=By.XPATH)
 
     price_box = driver.find_element(By.XPATH, "//div[@data-widget='Price']")
 
