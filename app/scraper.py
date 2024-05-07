@@ -75,3 +75,40 @@ def get_new_prices() -> str:
     driver.quit()
 
     return prices
+
+
+def get_tank_ono_prices() -> str:
+    def format(prices: str) -> str:
+        log.info("Formatting...")
+        prices = prices.split("LPG")[0]
+
+        counter = 0
+        c_list = []
+        for c in prices:
+            if c == "\n":
+                counter += 1
+                if counter % 3 != 0:
+                    c_list.append("  ")
+                    continue
+            if counter % 3 == 2:
+                continue
+            c_list.append(c)
+
+        return "".join(c_list)
+
+    url = "https://m.tank-ono.cz/cz/index.php?page=cenik"
+
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+
+    driver = webdriver.Firefox(options=options)
+    driver.get(url)
+
+    log.info("Getting Tank ONO prices")
+    unformatted_prices = driver.find_element(By.CLASS_NAME, "divcenter").text
+
+    prices = format(unformatted_prices)
+
+    driver.quit()
+    return prices
+

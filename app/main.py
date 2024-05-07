@@ -2,7 +2,7 @@ import logging
 
 from config import RECIPIENTS, PRICES_FILE_PATH
 from send_mail import send_mail
-from scraper import get_new_prices
+from scraper import get_new_prices, get_tank_ono_prices
 
 log = logging.getLogger("main")
 logging.basicConfig(
@@ -35,10 +35,32 @@ def main() -> None:
     with open(PRICES_FILE_PATH, "w") as f:
         f.write(new_prices)
 
+    body = f"""
+Nové ceny:
+
+{new_prices}
+---------------------
+    
+Staré ceny:
+
+{old_prices}
+---------------------
+"""
+    try:
+        tank_ono_prices = get_tank_ono_prices()
+        body += f"""
+Pro porovnání, Tank ONO prodává aktuálně za tolik:
+
+{tank_ono_prices} 
+---------------------     
+"""
+    except Exception:
+        log.exception("Getting Tank ONO prices fail with:")
+
     send_mail(
         recipients=RECIPIENTS,
         subject="Pozor pozor, vyhlašuji nové ceny!",
-        body=new_prices
+        body=body
     )
 
 
